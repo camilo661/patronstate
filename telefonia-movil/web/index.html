@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeleVenta · Sistema de Planes Móviles</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #1e1e2e;
+    --border-light: #2a2a3e;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --accent: #7c6af7;
+    --accent2: #f76a8a;
+    --claro: #e30613;
+    --movistar: #019df4;
+    --tigo: #00a0dc;
+    --success: #2dce89;
+    --warning: #fca84a;
+    --error: #f76a8a;
+    --info: #7c6af7;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 32px rgba(0,0,0,0.5);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background grain ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  /* ── Glow orbs ── */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+    animation: float 8s ease-in-out infinite;
+  }
+  .orb-1 { width:500px;height:500px;background:var(--accent);top:-100px;left:-100px; }
+  .orb-2 { width:400px;height:400px;background:var(--accent2);bottom:-50px;right:-50px;animation-delay:-4s; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
+
+  /* ── Layout ── */
+  .wrapper { position: relative; z-index: 1; max-width: 1300px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* ── Header ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg,var(--accent),var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .brand-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
+  .brand-sub { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
+  .header-badge {
+    background: rgba(124,106,247,0.12); border: 1px solid rgba(124,106,247,0.3);
+    color: var(--accent); padding: 6px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
+  }
+
+  /* ── Section titles ── */
+  .section-header { margin-bottom: 24px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .section-sub { font-size: 13px; color: var(--muted); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 6px; margin-bottom: 28px; background: var(--surface); padding: 5px; border-radius: var(--radius); border: 1px solid var(--border); width: fit-content; }
+  .tab-btn {
+    padding: 9px 22px; border-radius: 10px; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    background: transparent; color: var(--muted); transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { background: var(--card); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+  /* ── Operator selector ── */
+  .operator-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 32px; }
+  .operator-card {
+    background: var(--card); border: 2px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    cursor: pointer; transition: all 0.25s; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .operator-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: var(--op-color, var(--accent)); opacity: 0; transition: opacity 0.25s;
+  }
+  .operator-card:hover::before { opacity: 0.05; }
+  .operator-card.selected { border-color: var(--op-color, var(--accent)); }
+  .operator-card.selected::before { opacity: 0.08; }
+  .op-icon { font-size: 28px; margin-bottom: 8px; }
+  .op-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+  .op-slogan { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .op-sel-dot {
+    position: absolute; top: 10px; right: 10px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--op-color, var(--accent));
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .operator-card.selected .op-sel-dot { opacity: 1; }
+
+  /* ── Plans grid ── */
+  .plans-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 36px; }
+  .plan-card {
+    background: var(--card); border: 2px solid var(--border);
+    border-radius: var(--radius); padding: 18px 14px;
+    cursor: pointer; transition: all 0.25s; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .plan-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: var(--op-color, var(--accent)); opacity: 0; transition: opacity 0.25s;
+  }
+  .plan-card:hover { transform: translateY(-3px); border-color: var(--border-light); }
+  .plan-card:hover::before { opacity: 0.05; }
+  .plan-card.selected { border-color: var(--op-color, var(--accent)); transform: translateY(-3px); }
+  .plan-card.selected::before { opacity: 0.1; }
+  .plan-badge {
+    display: inline-block; font-size: 9px; font-weight: 600;
+    letter-spacing: 1px; padding: 3px 8px; border-radius: 4px;
+    background: rgba(124,106,247,0.15); color: var(--accent);
+    border: 1px solid rgba(124,106,247,0.3); margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .plan-days { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; line-height: 1; }
+  .plan-days-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .plan-price { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); }
+  .plan-price-currency { font-size: 11px; color: var(--muted); }
+  .plan-feature { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* ── Form ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  input {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 14px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+    transition: border-color 0.2s; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 13px 28px; border-radius: var(--radius-sm); border: none;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px;
+    font-weight: 600; transition: all 0.2s; letter-spacing: 0.2px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #9b7aff);
+    color: white; box-shadow: 0 4px 20px rgba(124,106,247,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(124,106,247,0.5); }
+  .btn-outline {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border-light);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(247,106,138,0.15); color: var(--error); border: 1px solid rgba(247,106,138,0.3); }
+  .btn-danger:hover { background: rgba(247,106,138,0.25); }
+  .btn-success { background: rgba(45,206,137,0.15); color: var(--success); border: 1px solid rgba(45,206,137,0.3); }
+  .btn-success:hover { background: rgba(45,206,137,0.25); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* ── Order summary card ── */
+  .order-summary {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
+  }
+  .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+  .summary-label { font-size: 13px; color: var(--muted); }
+  .summary-value { font-size: 13px; font-weight: 500; }
+  .summary-divider { height: 1px; background: var(--border); margin: 10px 0; }
+  .summary-total { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; }
+
+  /* ── State pipeline ── */
+  .state-pipeline {
+    display: flex; align-items: center; gap: 0; margin-bottom: 32px;
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 28px;
+  }
+  .state-step {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1;
+    position: relative;
+  }
+  .state-step:not(:last-child)::after {
+    content: ''; position: absolute; top: 16px; left: calc(50% + 20px);
+    width: calc(100% - 40px); height: 2px; background: var(--border);
+    transition: background 0.4s;
+  }
+  .state-step.done:not(:last-child)::after { background: var(--success); }
+  .state-step.active:not(:last-child)::after { background: linear-gradient(90deg, var(--accent), var(--border)); }
+  .step-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; transition: all 0.3s; z-index: 1;
+  }
+  .state-step.done .step-dot { background: var(--success); border-color: var(--success); }
+  .state-step.active .step-dot { background: var(--accent); border-color: var(--accent); animation: pulse 2s infinite; }
+  .state-step.cancelled .step-dot { background: var(--error); border-color: var(--error); }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(124,106,247,0.4)} 50%{box-shadow:0 0 0 8px rgba(124,106,247,0)} }
+  .step-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); text-align: center; }
+  .state-step.active .step-label { color: var(--accent); }
+  .state-step.done .step-label { color: var(--success); }
+
+  /* ── Orders list ── */
+  .orders-list { display: flex; flex-direction: column; gap: 14px; }
+  .order-item {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px 24px; display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center; gap: 20px; transition: border-color 0.2s;
+    cursor: pointer;
+  }
+  .order-item:hover { border-color: var(--border-light); }
+  .order-item.selected-order { border-color: var(--accent); }
+  .order-state-badge {
+    padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap;
+  }
+  .badge-PENDING { background: rgba(252,168,74,0.15); color: var(--warning); border: 1px solid rgba(252,168,74,0.3); }
+  .badge-VALIDATED { background: rgba(124,106,247,0.15); color: var(--accent); border: 1px solid rgba(124,106,247,0.3); }
+  .badge-PAYMENT_PROCESSED { background: rgba(1,157,244,0.15); color: #019df4; border: 1px solid rgba(1,157,244,0.3); }
+  .badge-ACTIVE { background: rgba(45,206,137,0.15); color: var(--success); border: 1px solid rgba(45,206,137,0.3); }
+  .badge-CANCELLED { background: rgba(247,106,138,0.12); color: var(--error); border: 1px solid rgba(247,106,138,0.3); }
+
+  .order-meta { font-size: 13px; }
+  .order-id { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+  .order-detail { color: var(--muted); margin-top: 3px; }
+  .order-price { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; text-align: right; }
+  .order-price-label { font-size: 11px; color: var(--muted); }
+  .order-actions { display: flex; gap: 8px; }
+
+  /* ── Logs panel ── */
+  .logs-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; max-height: 280px; overflow-y: auto;
+    margin-top: 16px;
+  }
+  .logs-panel::-webkit-scrollbar { width: 4px; }
+  .logs-panel::-webkit-scrollbar-track { background: transparent; }
+  .logs-panel::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+  .log-entry {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12.5px;
+    animation: fadeIn 0.3s ease;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+  .log-time { color: var(--muted); white-space: nowrap; font-size: 11px; padding-top: 2px; }
+  .log-dot {
+    width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
+  }
+  .log-dot-INFO { background: var(--info); }
+  .log-dot-SUCCESS { background: var(--success); }
+  .log-dot-ERROR { background: var(--error); }
+  .log-msg { flex: 1; line-height: 1.5; }
+  .log-type-SUCCESS { color: var(--success); }
+  .log-type-ERROR { color: var(--error); }
+  .log-type-INFO { color: var(--muted); }
+
+  /* ── Operator color strip ── */
+  .op-strip-CLARO { --op-color: var(--claro); }
+  .op-strip-MOVISTAR { --op-color: var(--movistar); }
+  .op-strip-TIGO { --op-color: var(--tigo); }
+
+  /* ── Empty state ── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-msg { font-size: 14px; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 30px; right: 30px; z-index: 9999;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 20px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: var(--shadow); font-size: 13px;
+    transform: translateY(20px); opacity: 0; transition: all 0.3s;
+    max-width: 340px;
+  }
+  #toast.show { transform: none; opacity: 1; }
+  #toast.success { border-color: rgba(45,206,137,0.4); }
+  #toast.error { border-color: rgba(247,106,138,0.4); }
+
+  /* ── Responsive ── */
+  @media(max-width:900px) {
+    .plans-grid { grid-template-columns: repeat(3,1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+  @media(max-width:600px) {
+    .operator-grid { grid-template-columns: 1fr; }
+    .plans-grid { grid-template-columns: repeat(2,1fr); }
+    .order-item { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ── Utility ── */
+  .hidden { display: none !important; }
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .gap-10 { gap: 10px; }
+  .mt-20 { margin-top: 20px; }
+  .mr-auto { margin-right: auto; }
+  .text-muted { color: var(--muted); }
+  .font-mono { font-family: 'Courier New', monospace; }
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="wrapper">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">📱</div>
+      <div>
+        <div class="brand-name">TeleVenta</div>
+        <div class="brand-sub">Sistema de Planes Móviles</div>
+      </div>
+    </div>
+    <div class="header-badge">Patrón State · Java</div>
+  </header>
+
+  <!-- ── Tabs ── -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('nueva-venta')">🛒 Nueva Venta</button>
+    <button class="tab-btn" onclick="showTab('mis-ordenes')">📋 Mis Órdenes</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       TAB: NUEVA VENTA
+  ════════════════════════════════════════════════════════ -->
+  <div id="tab-nueva-venta">
+
+    <!-- Paso 1: Seleccionar operador -->
+    <div class="section-header">
+      <div class="section-title">1. Seleccionar Operador</div>
+      <div class="section-sub">Elige tu operador de preferencia</div>
+    </div>
+    <div class="operator-grid" id="operatorGrid"></div>
+
+    <!-- Paso 2: Seleccionar plan -->
+    <div id="plansSection" class="hidden">
+      <div class="section-header flex-between">
+        <div>
+          <div class="section-title">2. Seleccionar Plan</div>
+          <div class="section-sub">Planes disponibles para <span id="selectedOpName" style="color:var(--text);font-weight:600"></span></div>
+        </div>
+      </div>
+      <div class="plans-grid" id="plansGrid"></div>
+    </div>
+
+    <!-- Paso 3: Datos del cliente -->
+    <div id="customerSection" class="hidden">
+      <div class="section-header">
+        <div class="section-title">3. Datos del Cliente</div>
+        <div class="section-sub">Información del titular del plan</div>
+      </div>
+
+      <!-- Resumen del plan elegido -->
+      <div id="planSummaryCard" class="order-summary" style="margin-bottom:20px"></div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nombre completo</label>
+          <input type="text" id="fName" placeholder="Ej: María González Pérez" />
+        </div>
+        <div class="form-group">
+          <label>Número de identificación</label>
+          <input type="text" id="fId" placeholder="Ej: 1012345678" />
+        </div>
+        <div class="form-group">
+          <label>Número de teléfono</label>
+          <input type="tel" id="fPhone" placeholder="Ej: 3001234567" />
+        </div>
+        <div class="form-group">
+          <label>Correo electrónico</label>
+          <input type="email" id="fEmail" placeholder="Ej: maria@correo.com" />
+        </div>
+      </div>
+
+      <div class="flex-between gap-10">
+        <button class="btn btn-outline" onclick="resetForm()">← Cambiar plan</button>
+        <button class="btn btn-primary" onclick="submitOrder()">Solicitar Plan →</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       TAB: MIS ÓRDENES
+  ════════════════════════════════════════════════════════ -->
+  <div id="tab-mis-ordenes" class="hidden">
+
+    <div class="flex-between" style="margin-bottom:24px">
+      <div>
+        <div class="section-title">Órdenes de Venta</div>
+        <div class="section-sub text-muted">Gestiona el estado de cada solicitud</div>
+      </div>
+      <button class="btn btn-outline" onclick="loadOrders()">↻ Actualizar</button>
+    </div>
+
+    <!-- Pipeline de estados (referencia visual) -->
+    <div class="state-pipeline" id="statePipeline">
+      <div class="state-step" id="step-PENDING">
+        <div class="step-dot">⏳</div><div class="step-label">Pendiente</div>
+      </div>
+      <div class="state-step" id="step-VALIDATED">
+        <div class="step-dot">✔</div><div class="step-label">Validado</div>
+      </div>
+      <div class="state-step" id="step-PAYMENT_PROCESSED">
+        <div class="step-dot">💳</div><div class="step-label">Pagado</div>
+      </div>
+      <div class="state-step" id="step-ACTIVE">
+        <div class="step-dot">✦</div><div class="step-label">Activo</div>
+      </div>
+    </div>
+
+    <div class="orders-list" id="ordersList"></div>
+
+    <!-- Detail panel for selected order -->
+    <div id="orderDetail" class="hidden mt-20">
+      <div class="order-summary">
+        <div class="flex-between" style="margin-bottom:16px">
+          <div class="section-title" id="detailOrderId"></div>
+          <div id="detailStateBadge"></div>
+        </div>
+        <div id="detailRows"></div>
+        <div class="summary-divider"></div>
+        <div class="flex-between gap-10" id="detailActions"></div>
+      </div>
+      <div class="section-sub" style="margin:12px 0 8px">Historial de actividad</div>
+      <div class="logs-panel" id="detailLogs"></div>
+    </div>
+
+  </div>
+
+</div><!-- /wrapper -->
+
+<!-- Toast -->
+<div id="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  STATE & CONFIG
+// ════════════════════════════════════════════════════════
+const API = '';
+let catalog = null;
+let selectedOperator = null;
+let selectedPlan = null;
+let orders = [];
+let selectedOrderIndex = null;
+
+const STATE_LABELS = {
+  PENDING: 'Pendiente', VALIDATED: 'Validado',
+  PAYMENT_PROCESSED: 'Pago Procesado', ACTIVE: 'Activo', CANCELLED: 'Cancelado'
+};
+const STATE_STEPS = ['PENDING','VALIDATED','PAYMENT_PROCESSED','ACTIVE'];
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  await fetchCatalog();
+});
+
+async function fetchCatalog() {
+  try {
+    const res = await fetch(API + '/api/catalog');
+    catalog = await res.json();
+    renderOperators();
+  } catch(e) {
+    showToast('No se pudo conectar con el servidor Java. Asegúrate de que esté corriendo en el puerto 8080.', 'error');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════════════
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-nueva-venta').classList.toggle('hidden', tab !== 'nueva-venta');
+  document.getElementById('tab-mis-ordenes').classList.toggle('hidden', tab !== 'mis-ordenes');
+  if(tab === 'mis-ordenes') loadOrders();
+}
+
+// ════════════════════════════════════════════════════════
+//  OPERATORS
+// ════════════════════════════════════════════════════════
+function renderOperators() {
+  if(!catalog) return;
+  const grid = document.getElementById('operatorGrid');
+  grid.innerHTML = '';
+  Object.values(catalog.operators).forEach(op => {
+    const card = document.createElement('div');
+    card.className = `operator-card op-strip-${op.id}`;
+    card.style.setProperty('--op-color', op.colorPrimary);
+    card.innerHTML = `
+      <div class="op-sel-dot"></div>
+      <div class="op-icon">${op.icon}</div>
+      <div class="op-name">${op.name}</div>
+      <div class="op-slogan">${op.slogan}</div>
+    `;
+    card.addEventListener('click', () => selectOperator(op, card));
+    grid.appendChild(card);
+  });
+}
+
+function selectOperator(op, card) {
+  selectedOperator = op;
+  selectedPlan = null;
+  document.querySelectorAll('.operator-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  document.getElementById('selectedOpName').textContent = op.name;
+  document.getElementById('plansSection').classList.remove('hidden');
+  document.getElementById('customerSection').classList.add('hidden');
+  renderPlans(op.id);
+  document.getElementById('plansSection').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// ════════════════════════════════════════════════════════
+//  PLANS
+// ════════════════════════════════════════════════════════
+function renderPlans(operatorId) {
+  if(!catalog) return;
+  const plans = catalog.plans.filter(p => p.operatorId === operatorId);
+  const grid = document.getElementById('plansGrid');
+  grid.innerHTML = '';
+  plans.forEach(p => {
+    const card = document.createElement('div');
+    card.className = `plan-card op-strip-${operatorId}`;
+    card.style.setProperty('--op-color', catalog.operators[operatorId].colorPrimary);
+    const badgeColors = {BÁSICO:'rgba(124,106,247',POPULAR:'rgba(252,168,74',RECOMENDADO:'rgba(1,157,244',PREMIUM:'rgba(247,106,138',ELITE:'rgba(45,206,137'};
+    const bc = badgeColors[p.badge] || 'rgba(124,106,247';
+    card.innerHTML = `
+      <div class="plan-badge" style="background:${bc},0.15);color:${bc},1);border-color:${bc},0.35)">${p.badge}</div>
+      <div class="plan-days">${p.days}</div>
+      <div class="plan-days-label">días</div>
+      <div class="plan-price">$${p.price.toLocaleString('es-CO')}</div>
+      <div class="plan-price-currency">COP</div>
+      <div class="plan-feature" style="margin-top:8px">📶 ${p.data}</div>
+      <div class="plan-feature">📞 ${p.minutes}</div>
+      <div class="plan-feature">💬 ${p.sms} SMS</div>
+    `;
+    card.addEventListener('click', () => selectPlan(p, card));
+    grid.appendChild(card);
+  });
+}
+
+function selectPlan(plan, card) {
+  selectedPlan = plan;
+  document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  renderPlanSummary(plan);
+  document.getElementById('customerSection').classList.remove('hidden');
+  document.getElementById('customerSection').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function renderPlanSummary(plan) {
+  const op = catalog.operators[plan.operatorId];
+  document.getElementById('planSummaryCard').innerHTML = `
+    <div class="flex-between">
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Plan seleccionado</div>
+        <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700">${plan.name}</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px">${op.name} · ${plan.days} días · 📶 ${plan.data} · 📞 ${plan.minutes}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">Valor</div>
+        <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800">$${plan.price.toLocaleString('es-CO')}</div>
+        <div style="font-size:11px;color:var(--muted)">COP</div>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════
+//  FORM SUBMIT
+// ════════════════════════════════════════════════════════
+async function submitOrder() {
+  const name = document.getElementById('fName').value.trim();
+  const id = document.getElementById('fId').value.trim();
+  const phone = document.getElementById('fPhone').value.trim();
+  const email = document.getElementById('fEmail').value.trim();
+  if(!name||!id||!phone||!email) { showToast('Por favor completa todos los campos.','error'); return; }
+  if(!selectedPlan) { showToast('Selecciona un plan primero.','error'); return; }
+  const body = new URLSearchParams({customerName:name,idNumber:id,phoneNumber:phone,email,planId:selectedPlan.id});
+  try {
+    const res = await fetch(API+'/api/orders/create',{method:'POST',body});
+    const data = await res.json();
+    if(data.success) {
+      showToast(`✅ Orden ${data.orderId} creada exitosamente!`,'success');
+      resetForm();
+      setTimeout(()=>{ showTab2('mis-ordenes'); loadOrders(); },1200);
+    } else { showToast(data.error,'error'); }
+  } catch(e) { showToast('Error de conexión con el servidor.','error'); }
+}
+
+function resetForm() {
+  selectedOperator = null; selectedPlan = null;
+  document.querySelectorAll('.operator-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('plansSection').classList.add('hidden');
+  document.getElementById('customerSection').classList.add('hidden');
+  ['fName','fId','fPhone','fEmail'].forEach(id=>document.getElementById(id).value='');
+}
+
+function showTab2(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.classList.toggle('active', i===(tab==='nueva-venta'?0:1)); });
+  document.getElementById('tab-nueva-venta').classList.toggle('hidden', tab!=='nueva-venta');
+  document.getElementById('tab-mis-ordenes').classList.toggle('hidden', tab!=='mis-ordenes');
+}
+
+// ════════════════════════════════════════════════════════
+//  ORDERS LIST
+// ════════════════════════════════════════════════════════
+async function loadOrders() {
+  try {
+    const res = await fetch(API+'/api/orders');
+    orders = await res.json();
+    renderOrders();
+    if(selectedOrderIndex !== null) renderOrderDetail(selectedOrderIndex);
+  } catch(e) { showToast('Error al cargar órdenes.','error'); }
+}
+
+function renderOrders() {
+  const list = document.getElementById('ordersList');
+  if(!orders.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-msg">No hay órdenes registradas aún.<br>Crea una nueva venta para comenzar.</div></div>';
+    document.getElementById('orderDetail').classList.add('hidden');
+    return;
+  }
+  list.innerHTML = '';
+  orders.forEach((o,i)=>{
+    const div = document.createElement('div');
+    div.className = 'order-item' + (i===selectedOrderIndex?' selected-order':'');
+    div.innerHTML = `
+      <div class="order-state-badge badge-${o.state}">${STATE_LABELS[o.state]||o.state}</div>
+      <div class="order-meta">
+        <div class="order-id">${o.orderId}</div>
+        <div class="order-detail">${o.customerName} · ${o.operatorId} · ${o.planName}</div>
+      </div>
+      <div>
+        <div class="order-price">$${Number(o.planPrice).toLocaleString('es-CO')}</div>
+        <div class="order-price-label">COP · ${o.planDays} días</div>
+      </div>
+      <div class="order-actions">
+        <button class="btn btn-outline" style="padding:8px 14px;font-size:12px" onclick="renderOrderDetail(${i});event.stopPropagation()">Ver detalle</button>
+      </div>
+    `;
+    div.addEventListener('click', ()=>renderOrderDetail(i));
+    list.appendChild(div);
+  });
+}
+
+function renderOrderDetail(index) {
+  selectedOrderIndex = index;
+  const o = orders[index];
+  if(!o) return;
+
+  // Highlight selected order in list
+  document.querySelectorAll('.order-item').forEach((el,i)=>el.classList.toggle('selected-order',i===index));
+
+  // Update pipeline
+  STATE_STEPS.forEach(s=>{
+    const el = document.getElementById('step-'+s);
+    if(!el) return;
+    el.classList.remove('done','active','cancelled');
+    const sIdx = STATE_STEPS.indexOf(s);
+    const cIdx = STATE_STEPS.indexOf(o.state);
+    if(o.state==='CANCELLED'){
+      if(sIdx < cIdx) el.classList.add('done');
+    } else {
+      if(sIdx < cIdx) el.classList.add('done');
+      else if(sIdx === cIdx) el.classList.add('active');
+    }
+  });
+
+  // Detail card
+  const detailEl = document.getElementById('orderDetail');
+  detailEl.classList.remove('hidden');
+  document.getElementById('detailOrderId').textContent = o.orderId;
+  document.getElementById('detailStateBadge').innerHTML = `<div class="order-state-badge badge-${o.state}">${STATE_LABELS[o.state]||o.state}</div>`;
+  document.getElementById('detailRows').innerHTML = `
+    <div class="summary-row"><span class="summary-label">Cliente</span><span class="summary-value">${o.customerName}</span></div>
+    <div class="summary-row"><span class="summary-label">Teléfono</span><span class="summary-value font-mono">${o.customerPhone}</span></div>
+    <div class="summary-row"><span class="summary-label">Operador</span><span class="summary-value">${o.operatorId}</span></div>
+    <div class="summary-row"><span class="summary-label">Plan</span><span class="summary-value">${o.planName}</span></div>
+    <div class="summary-row"><span class="summary-label">Duración</span><span class="summary-value">${o.planDays} días</span></div>
+    <div class="summary-row"><span class="summary-label">Fecha solicitud</span><span class="summary-value">${o.createdAt}</span></div>
+    <div class="summary-row"><span class="summary-label">Valor</span><span class="summary-value summary-total">$${Number(o.planPrice).toLocaleString('es-CO')} COP</span></div>
+  `;
+
+  // Action buttons
+  const actionsEl = document.getElementById('detailActions');
+  actionsEl.innerHTML = '';
+  const state = o.state;
+  if(state==='PENDING'){
+    actionsEl.innerHTML = `
+      <button class="btn btn-success" onclick="advanceOrder(${index})">✔ Validar Cliente</button>
+      <button class="btn btn-danger" onclick="cancelOrder(${index})">✕ Cancelar</button>
+    `;
+  } else if(state==='VALIDATED'){
+    actionsEl.innerHTML = `
+      <button class="btn btn-success" onclick="advanceOrder(${index})">💳 Procesar Pago</button>
+      <button class="btn btn-danger" onclick="cancelOrder(${index})">✕ Cancelar</button>
+    `;
+  } else if(state==='PAYMENT_PROCESSED'){
+    actionsEl.innerHTML = `
+      <button class="btn btn-primary" onclick="advanceOrder(${index})">⚡ Activar Plan</button>
+      <button class="btn btn-danger" onclick="cancelOrder(${index})">✕ Cancelar</button>
+    `;
+  } else {
+    actionsEl.innerHTML = `<span class="text-muted" style="font-size:13px">${o.stateDesc}</span>`;
+  }
+
+  // Logs
+  const logsEl = document.getElementById('detailLogs');
+  logsEl.innerHTML = (o.logs||[]).map(l=>`
+    <div class="log-entry">
+      <span class="log-time">${l.time}</span>
+      <span class="log-dot log-dot-${l.type}"></span>
+      <span class="log-msg log-type-${l.type}">${l.message}</span>
+    </div>
+  `).reverse().join('');
+
+  detailEl.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// ════════════════════════════════════════════════════════
+//  ORDER ACTIONS
+// ════════════════════════════════════════════════════════
+async function advanceOrder(index) {
+  try {
+    const res = await fetch(API+'/api/orders/advance',{method:'POST',body:new URLSearchParams({orderIndex:index})});
+    const data = await res.json();
+    if(data.success){
+      showToast('Estado actualizado: '+( STATE_LABELS[data.state]||data.state),'success');
+      await loadOrders();
+    } else showToast(data.error,'error');
+  } catch(e){ showToast('Error de conexión.','error'); }
+}
+
+async function cancelOrder(index) {
+  if(!confirm('¿Seguro que deseas cancelar esta orden?')) return;
+  try {
+    const res = await fetch(API+'/api/orders/cancel',{method:'POST',body:new URLSearchParams({orderIndex:index})});
+    const data = await res.json();
+    if(data.success){
+      showToast('Orden cancelada.','success');
+      await loadOrders();
+    } else showToast(data.error,'error');
+  } catch(e){ showToast('Error de conexión.','error'); }
+}
+
+// ════════════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════════════
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = type==='success'?'✅':type==='error'?'❌':'ℹ️';
+  t.className = 'show ' + type;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.className='', 3500);
+}
+</script>
+</body>
+</html>
